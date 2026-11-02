@@ -69,7 +69,7 @@ def build():
     for p in posts:
         folder = OUT / "posts" / p["slug"]
         folder.mkdir(parents=True, exist_ok=True)
-        content = f'<article class="hero" style="padding-top:55px"><div class="eyebrow">{safe(p["category"])} · {safe(p["project"])} / {safe(p["date"])}</div><h1 style="font-size:clamp(36px,6vw,65px)">{safe(p["title"])}</h1><p class="lead">{safe(p["excerpt"])}</p>'
+        content = f'<article style="padding:55px 0 70px;max-width:790px"><div class="eyebrow">{safe(p["category"])} · {safe(p["project"])} / {safe(p["date"])}</div><h1 style="font-size:clamp(36px,6vw,65px)">{safe(p["title"])}</h1><p class="lead">{safe(p["excerpt"])}</p>'
         if p["cover"]: content += f'<img src="{safe(p["cover"])}" alt="" style="margin-top:30px;max-width:100%;height:auto">'
         content += '<div class="entry" style="margin-top:40px;font-size:19px;line-height:1.85;overflow-wrap:anywhere">' + p["html"] + '</div><p style="margin-top:45px"><a href="/#journal">← Все записи</a></p></article>'
         # Reuse the same global styles and header/footer.
