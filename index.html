@@ -37,6 +37,12 @@ body.sq-locked{overflow:hidden}
 .hero-art{position:relative;inset:auto;width:100%;height:auto;min-height:0;aspect-ratio:980/724;background-image:url('/assets/side-quest-banner-mobile.webp?v=map-mobile-fit-2');background-size:100% 100%;background-position:center;background-repeat:no-repeat}
 .hero-inner{min-height:0;padding-top:23px;padding-bottom:27px}
 }
+/* Mobile full map: use original wide artwork, never the pre-cropped 980x724 file. */
+@media(max-width:700px){
+.hero{height:auto;min-height:0;aspect-ratio:auto;overflow:hidden;margin-top:0}
+.hero-art{display:block;position:relative;inset:auto;width:100%;height:auto;min-height:0;aspect-ratio:1600/533;background-image:url('/assets/side-quest-banner-desktop.webp?v=full-map-3');background-size:100% 100%;background-position:center;background-repeat:no-repeat}
+.hero-inner{min-height:0;padding:22px 20px 27px}
+}
 </style></head>
 <body><header class="top"><div class="wrap topin"><a href="/" class="brand" aria-label="Side Quest — главная"><img src="/assets/side-quest-mark.svg" alt=""><span>Side <em>Quest.</em></span></a><nav aria-label="Навигация"><a href="/#journal">Главная</a><a href="/#categories">Разделы</a><a href="/projects/">Проекты</a><a href="/archive/">Архив</a><a href="/#about">О сайте</a></nav></div></header>
 <main class="wrap">
