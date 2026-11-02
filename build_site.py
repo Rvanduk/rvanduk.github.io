@@ -5,6 +5,9 @@ from datetime import date
 from html import escape
 from urllib.parse import quote
 import re, shutil
+from email.utils import format_datetime
+from datetime import datetime, timezone
+from xml.sax.saxutils import escape as xml_escape
 import yaml
 import markdown
 
@@ -208,6 +211,33 @@ render();
     archive_page = archive_page.replace('</body></html>', archive_script + '</body></html>')
     archive_page = re.sub(r'<title>.*?</title>', '<title>Архив — Side Quest</title>', archive_page, count=1)
     (archive_folder / "index.html").write_text(archive_page, encoding="utf-8")
+    # RSS 2.0: generated from published posts only, newest first.
+    rss_items = []
+    for p in posts[:30]:
+        url = "https://rvanduk.github.io/posts/" + quote(p["slug"]) + "/"
+        try:
+            published = format_datetime(datetime.fromisoformat(p["date"]).replace(tzinfo=timezone.utc))
+        except ValueError:
+            published = None
+        rss_items.append(
+            "<item><title>" + xml_escape(p["title"]) + "</title>"
+            + "<link>" + xml_escape(url) + "</link>"
+            + "<guid isPermaLink=\"true\">" + xml_escape(url) + "</guid>"
+            + ("<pubDate>" + published + "</pubDate>" if published else "")
+            + "<description>" + xml_escape(p["excerpt"]) + "</description>"
+            + "<category>" + xml_escape(p["category"]) + "</category>"
+            + "</item>"
+        )
+    rss = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+           '<rss version="2.0"><channel>'
+           '<title>Side Quest</title>'
+           '<link>https://rvanduk.github.io/</link>'
+           '<description>Игры, книги, код и неизведанное.</description>'
+           '<language>ru</language>'
+           '<atom:link xmlns:atom="http://www.w3.org/2005/Atom" '
+           'href="https://rvanduk.github.io/rss.xml" rel="self" type="application/rss+xml"/>'
+           + "".join(rss_items) + '</channel></rss>')
+    (OUT / "rss.xml").write_text(rss, encoding="utf-8")
     print(f"Built {len(posts)} posts and {len(projects)} projects")
 
 if __name__ == "__main__": build()
