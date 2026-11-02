@@ -1,0 +1,50 @@
+media:
+  input: media
+  output: /media
+  rename: safe
+content:
+  - name: posts
+    label: Записи дневника
+    type: collection
+    path: content/posts
+    format: yaml-frontmatter
+    filename: "{year}-{month}-{day}-{primary}.md"
+    view:
+      fields: [title, date, project, published]
+      primary: title
+      sort: [date, title]
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title
+        label: Заголовок
+        type: string
+        required: true
+      - name: date
+        label: Дата публикации
+        type: date
+        required: true
+        options:
+          format: yyyy-MM-dd
+      - name: project
+        label: Проект
+        type: select
+        default: Мастерская
+        options:
+          values: [Мастерская, Wild Wings, ДРЕЙФ, Эксперименты]
+      - name: excerpt
+        label: Короткое описание
+        type: text
+      - name: cover
+        label: Обложка (необязательно)
+        type: image
+      - name: published
+        label: Опубликовано
+        type: boolean
+        default: true
+      - name: body
+        label: Текст записи
+        type: rich-text
+        options:
+          format: markdown
