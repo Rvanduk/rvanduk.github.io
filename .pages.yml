@@ -10,7 +10,7 @@ content:
     format: yaml-frontmatter
     filename: "{year}-{month}-{day}-{primary}.md"
     view:
-      fields: [title, date, project, published]
+      fields: [title, date, category, project, published]
       primary: title
       sort: [date, title]
       default:
@@ -27,8 +27,14 @@ content:
         required: true
         options:
           format: yyyy-MM-dd
+      - name: category
+        label: Раздел журнала
+        type: select
+        default: Разработка
+        options:
+          values: [Разработка, Играю, Пишу, Заметки]
       - name: project
-        label: Проект
+        label: Проект (необязательно)
         type: select
         default: Мастерская
         options:
