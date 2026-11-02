@@ -36,6 +36,33 @@ def load_posts():
         })
     return sorted(posts, key=lambda p: (p["date"], p["slug"]), reverse=True)
 
+
+def load_projects():
+    items = []
+    directory = ROOT / "content" / "projects"
+    if not directory.exists():
+        return items
+    for path in sorted(directory.glob("*.md")):
+        raw = path.read_text(encoding="utf-8")
+        if not raw.startswith("---"):
+            continue
+        parts = raw.split("---", 2)
+        if len(parts) != 3:
+            continue
+        data = yaml.safe_load(parts[1]) or {}
+        if data.get("published", True) is not True:
+            continue
+        items.append({
+            "slug": path.stem,
+            "title": str(data.get("title") or path.stem),
+            "description": str(data.get("description") or ""),
+            "status": str(data.get("status") or "В разработке"),
+            "cover": str(data.get("cover") or ""),
+            "download": str(data.get("download") or ""),
+            "html": markdown.markdown(parts[2], extensions=["extra", "sane_lists"]),
+        })
+    return items
+
 def build():
     if OUT.exists(): shutil.rmtree(OUT)
     OUT.mkdir()
@@ -65,6 +92,24 @@ def build():
                     f'<a class="more" href="{latest_link}">Читать запись →</a></div></div>')
         index, feature_count = re.subn(r'<div class="feature" id="featured">.*?</div></div>', lambda _: featured, index, count=1, flags=re.S)
         if feature_count != 1: raise RuntimeError("Could not find featured article")
+
+    projects = load_projects()
+    if projects:
+        cards = []
+        for p in projects:
+            link = "/projects/" + quote(p["slug"]) + "/"
+            cover = (f'<img src="{safe(p["cover"])}" alt="" loading="lazy" '
+                     f'style="width:100%;aspect-ratio:16/9;object-fit:cover;border:1px solid var(--edge)">')
+            if p["cover"] else ""
+            cards.append(f'<a class="project" href="{link}" style="display:block">'
+                         f'{cover}<h3>{safe(p["title"])} ↗</h3>'
+                         f'<p>{safe(p["description"])}</p>'
+                         f'<div class="tag">{safe(p["status"])}</div></a>')
+        section = '<aside class="projects" id="projects"><h2>Мои проекты</h2>' + "".join(cards) + '</aside>'
+        index, count = re.subn(r'<aside class="projects" id="projects">.*?</aside>',
+                                lambda _: section, index, count=1, flags=re.S)
+        if count != 1:
+            raise RuntimeError("Could not locate projects sidebar")
     (OUT / "index.html").write_text(index, encoding="utf-8")
     # Article pages share the journal's masthead and footer, without hiding
     # a second copy of the homepage behind the article.
@@ -91,6 +136,26 @@ def build():
                           '<title>' + safe(p["title"]) + ' — Side Quest</title>',
                           template, count=1)
         folder.joinpath("index.html").write_text(template, encoding="utf-8")
-    print(f"Built {len(posts)} published post(s)")
+
+    for p in projects:
+        folder = OUT / "projects" / p["slug"]
+        folder.mkdir(parents=True, exist_ok=True)
+        cover = (f'<figure class="article-cover"><img src="{safe(p["cover"])}" alt=""></figure>'
+                 if p["cover"] else "")
+        download = ""
+        if p["download"].startswith(("https://", "http://")):
+            download = f'<p><a class="paperlink" href="{safe(p["download"])}" rel="noopener noreferrer">Скачать или открыть проект ↗</a></p>'
+        article = (f'<main class="wrap"><article class="article-shell">'
+                   f'<a class="article-back" href="/#projects">← К проектам</a>'
+                   f'<header class="article-header"><div class="article-meta">{safe(p["status"])}</div>'
+                   f'<h1>{safe(p["title"])}</h1>'
+                   f'<p class="article-lead">{safe(p["description"])}</p></header>'
+                   f'{cover}<div class="entry">{p["html"]}{download}</div></article></main>')
+        template = page_head + article + '<footer class="wrap foot">' + page_foot
+        template = re.sub(r'<title>.*?</title>',
+                          '<title>' + safe(p["title"]) + ' — Side Quest</title>',
+                          template, count=1)
+        folder.joinpath("index.html").write_text(template, encoding="utf-8")
+    print(f"Built {len(posts)} posts and {len(projects)} projects")
 
 if __name__ == "__main__": build()
