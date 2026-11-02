@@ -99,8 +99,7 @@ def build():
         for p in projects:
             link = "/projects/" + quote(p["slug"]) + "/"
             cover = (f'<img src="{safe(p["cover"])}" alt="" loading="lazy" '
-                     f'style="width:100%;aspect-ratio:16/9;object-fit:cover;border:1px solid var(--edge)">')
-            if p["cover"] else ""
+                     f'style="width:100%;aspect-ratio:16/9;object-fit:cover;border:1px solid var(--edge)">') if p["cover"] else ""
             cards.append(f'<a class="project" href="{link}" style="display:block">'
                          f'{cover}<h3>{safe(p["title"])} ↗</h3>'
                          f'<p>{safe(p["description"])}</p>'
