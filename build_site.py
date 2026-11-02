@@ -155,6 +155,59 @@ def build():
                           '<title>' + safe(p["title"]) + ' — Side Quest</title>',
                           template, count=1)
         folder.joinpath("index.html").write_text(template, encoding="utf-8")
+
+    # Fully static archive, searchable on the visitor's device.
+    archive_items = []
+    years, categories, project_names = set(), set(), set()
+    for p in posts:
+        year = p["date"][:4] if len(p["date"]) >= 4 else "Без даты"
+        years.add(year)
+        categories.add(p["category"])
+        if p["project"]:
+            project_names.add(p["project"])
+        archive_items.append({
+            "title": p["title"], "date": p["date"], "year": year,
+            "category": p["category"], "project": p["project"],
+            "excerpt": p["excerpt"], "url": "/posts/" + quote(p["slug"]) + "/",
+            "search": re.sub(r'<[^>]+>', ' ', p["html"]),
+        })
+    import json
+    archive_folder = OUT / "archive"
+    archive_folder.mkdir(parents=True, exist_ok=True)
+    json_data = json.dumps(archive_items, ensure_ascii=False).replace("<", "\\u003c")
+    archive_html = ('''<main class="wrap"><section class="archive-head"><div class="eyebrow">SIDE QUEST / КАРТОТЕКА ЭКСПЕДИЦИЙ</div>
+<h1>Архив приключений.</h1><p>Все заметки, игры и открытия в одном месте. Можно искать даже по тексту публикаций.</p></section>
+<div class="archive-controls"><input id="archive-search" type="search" placeholder="Поиск по публикациям…" aria-label="Поиск">
+<select id="archive-category" aria-label="Раздел"><option value="">Все разделы</option></select>
+<select id="archive-project" aria-label="Проект"><option value="">Все проекты</option></select>
+<select id="archive-year" aria-label="Год"><option value="">Все годы</option></select></div>
+<div class="archive-status" id="archive-status" role="status"></div>
+<div id="archive-results"></div><noscript>Для фильтрации записей необходим JavaScript.</noscript></main>''')
+    archive_script = """<script id="archive-data" type="application/json">""" + json_data + """</script>
+<script>(()=> {
+const records=JSON.parse(document.getElementById('archive-data').textContent);
+const search=document.getElementById('archive-search'),category=document.getElementById('archive-category'),
+project=document.getElementById('archive-project'),year=document.getElementById('archive-year'),
+results=document.getElementById('archive-results'),status=document.getElementById('archive-status');
+const escapeHTML=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function populate(select,values){for(const value of [...new Set(values)].filter(Boolean).sort().reverse()){const option=document.createElement('option');option.value=value;option.textContent=value;select.append(option)}}
+populate(category,records.map(p=>p.category));populate(project,records.map(p=>p.project));populate(year,records.map(p=>p.year));
+function render(){
+const q=search.value.toLocaleLowerCase('ru').trim();
+const filtered=records.filter(p=>(!q||[p.title,p.excerpt,p.category,p.project,p.search].join(' ').toLocaleLowerCase('ru').includes(q))&&(!category.value||p.category===category.value)&&(!project.value||p.project===project.value)&&(!year.value||p.year===year.value));
+status.textContent='Найдено публикаций: '+filtered.length;
+results.replaceChildren();
+if(!filtered.length){const empty=document.createElement('p');empty.className='archive-empty';empty.textContent='Ничего не найдено. Попробуй другой запрос.';results.append(empty);return}
+const groups=new Map();for(const p of filtered){if(!groups.has(p.year))groups.set(p.year,[]);groups.get(p.year).push(p)}
+for(const [yr,items] of groups){const section=document.createElement('section');section.className='archive-year';section.innerHTML='<h2>'+escapeHTML(yr)+'</h2>';for(const p of items){const el=document.createElement('article');el.className='archive-item';el.innerHTML='<div class="meta">'+escapeHTML(p.date)+'<br>'+escapeHTML(p.category)+'</div><div><h3><a href="'+encodeURI(p.url)+'">'+escapeHTML(p.title)+'</a></h3><p>'+escapeHTML(p.excerpt)+'</p><span class="tag">'+escapeHTML(p.project)+'</span></div>';section.append(el)}results.append(section)}
+}
+for(const el of [search,category,project,year])el.addEventListener(el===search?'input':'change',render);
+render();
+})();</script>"""
+    archive_page = page_head + archive_html + '<footer class="wrap foot">' + page_foot
+    archive_page = archive_page.replace('</body></html>', archive_script + '</body></html>')
+    archive_page = re.sub(r'<title>.*?</title>', '<title>Архив — Side Quest</title>', archive_page, count=1)
+    (archive_folder / "index.html").write_text(archive_page, encoding="utf-8")
     print(f"Built {len(posts)} posts and {len(projects)} projects")
 
 if __name__ == "__main__": build()
