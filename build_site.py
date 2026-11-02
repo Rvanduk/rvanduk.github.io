@@ -74,6 +74,10 @@ def build():
     if (ROOT / "assets").exists(): shutil.copytree(ROOT / "assets", OUT / "assets")
     posts = load_posts()
     index = (OUT / "index.html").read_text(encoding="utf-8")
+    projects = load_projects()
+    def project_for(post):
+        value = post["project"].strip().casefold()
+        return next((p for p in projects if value and value in (p["title"].strip().casefold(), p["slug"].strip().casefold())), None)
     if posts:
         cards = []
         for p in posts[:12]:
@@ -96,7 +100,6 @@ def build():
         index, feature_count = re.subn(r'<div class="feature" id="featured">.*?</div></div>', lambda _: featured, index, count=1, flags=re.S)
         if feature_count != 1: raise RuntimeError("Could not find featured article")
 
-    projects = load_projects()
     if projects:
         cards = []
         for p in projects:
@@ -121,17 +124,21 @@ def build():
         folder = OUT / "posts" / p["slug"]
         folder.mkdir(parents=True, exist_ok=True)
         meta = f'<span>{safe(p["date"])}</span><span>{safe(p["category"])}</span>'
-        if p["project"]:
+        linked = project_for(p)
+        if linked:
+            meta += f'<a href="/projects/{quote(linked["slug"])}/">Проект: {safe(linked["title"])} ↗</a>'
+        elif p["project"]:
             meta += f'<span>{safe(p["project"])}</span>'
         lead = f'<p class="article-lead">{safe(p["excerpt"])}</p>' if p["excerpt"] else ""
         cover = (f'<figure class="article-cover"><img src="{safe(p["cover"])}" alt="" loading="eager"></figure>'
                  if p["cover"] else "")
+        project_back = (f'<a href="/projects/{quote(linked["slug"])}/">← К проекту {safe(linked["title"])}</a> · ' if linked else "")
         article = (f'<main class="wrap"><article class="article-shell">'
                    f'<a class="article-back" href="/#journal">← К журналу</a>'
                    f'<header class="article-header"><div class="article-meta">{meta}</div>'
                    f'<h1>{safe(p["title"])}</h1>{lead}</header>'
                    f'{cover}<div class="entry">{p["html"]}</div>'
-                   f'<div class="article-end"><a href="/#journal">← Все публикации</a></div>'
+                   f'<div class="article-end">{project_back}<a href="/archive/">Все публикации →</a></div>'
                    f'</article></main>')
         template = page_head + article + '<footer class="wrap foot">' + page_foot
         template = re.sub(r'<title>.*?</title>',
@@ -147,12 +154,23 @@ def build():
         download = ""
         if p["download"].startswith(("https://", "http://")):
             download = f'<p><a class="paperlink" href="{safe(p["download"])}" rel="noopener noreferrer">Скачать или открыть проект ↗</a></p>'
+        related = [post for post in posts if project_for(post) and project_for(post)["slug"] == p["slug"]]
+        related_html = '<section class="project-diary"><h2>Дневник разработки</h2>'
+        if related:
+            for post in related:
+                href = "/posts/" + quote(post["slug"]) + "/"
+                related_html += (f'<article class="archive-item"><div class="meta">{safe(post["date"])}</div>'
+                                 f'<div><h3><a href="{href}">{safe(post["title"])}</a></h3>'
+                                 f'<p>{safe(post["excerpt"])}</p></div></article>')
+        else:
+            related_html += '<p class="project-diary-empty">Публикаций пока нет. Здесь появятся записи, связанные с проектом.</p>'
+        related_html += '</section>'
         article = (f'<main class="wrap"><article class="article-shell">'
                    f'<a class="article-back" href="/#projects">← К проектам</a>'
                    f'<header class="article-header"><div class="article-meta">{safe(p["status"])}</div>'
                    f'<h1>{safe(p["title"])}</h1>'
                    f'<p class="article-lead">{safe(p["description"])}</p></header>'
-                   f'{cover}<div class="entry">{p["html"]}{download}</div></article></main>')
+                   f'{cover}<div class="entry">{p["html"]}{download}</div>{related_html}</article></main>')
         template = page_head + article + '<footer class="wrap foot">' + page_foot
         template = re.sub(r'<title>.*?</title>',
                           '<title>' + safe(p["title"]) + ' — Side Quest</title>',
