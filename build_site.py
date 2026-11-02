@@ -66,16 +66,30 @@ def build():
         index, feature_count = re.subn(r'<div class="feature" id="featured">.*?</div></div>', lambda _: featured, index, count=1, flags=re.S)
         if feature_count != 1: raise RuntimeError("Could not find featured article")
     (OUT / "index.html").write_text(index, encoding="utf-8")
+    # Article pages share the journal's masthead and footer, without hiding
+    # a second copy of the homepage behind the article.
+    page_head = index.split('<main class="wrap">', 1)[0]
+    page_foot = index.split('<footer class="wrap foot">', 1)[1]
     for p in posts:
         folder = OUT / "posts" / p["slug"]
         folder.mkdir(parents=True, exist_ok=True)
-        content = f'<article style="padding:55px 0 70px;max-width:790px"><div class="eyebrow">{safe(p["category"])} · {safe(p["project"])} / {safe(p["date"])}</div><h1 style="font-size:clamp(36px,6vw,65px)">{safe(p["title"])}</h1><p class="lead">{safe(p["excerpt"])}</p>'
-        if p["cover"]: content += f'<img src="{safe(p["cover"])}" alt="" style="margin-top:30px;max-width:100%;height:auto">'
-        content += '<div class="entry" style="margin-top:40px;font-size:19px;line-height:1.85;overflow-wrap:anywhere">' + p["html"] + '</div><p style="margin-top:45px"><a href="/#journal">← Все записи</a></p></article>'
-        # Reuse the same global styles and header/footer.
-        template = index.replace('<main class="wrap">', '<main class="wrap">' + content + '<div style="display:none">', 1)
-        template = template.replace('</main><footer', '</div></main><footer', 1)
-        template = re.sub(r'<title>.*?</title>', '<title>' + safe(p["title"]) + ' — Side Quest</title>', template, count=1)
+        meta = f'<span>{safe(p["date"])}</span><span>{safe(p["category"])}</span>'
+        if p["project"]:
+            meta += f'<span>{safe(p["project"])}</span>'
+        lead = f'<p class="article-lead">{safe(p["excerpt"])}</p>' if p["excerpt"] else ""
+        cover = (f'<figure class="article-cover"><img src="{safe(p["cover"])}" alt="" loading="eager"></figure>'
+                 if p["cover"] else "")
+        article = (f'<main class="wrap"><article class="article-shell">'
+                   f'<a class="article-back" href="/#journal">← К журналу</a>'
+                   f'<header class="article-header"><div class="article-meta">{meta}</div>'
+                   f'<h1>{safe(p["title"])}</h1>{lead}</header>'
+                   f'{cover}<div class="entry">{p["html"]}</div>'
+                   f'<div class="article-end"><a href="/#journal">← Все публикации</a></div>'
+                   f'</article></main>')
+        template = page_head + article + '<footer class="wrap foot">' + page_foot
+        template = re.sub(r'<title>.*?</title>',
+                          '<title>' + safe(p["title"]) + ' — Side Quest</title>',
+                          template, count=1)
         folder.joinpath("index.html").write_text(template, encoding="utf-8")
     print(f"Built {len(posts)} published post(s)")
 
