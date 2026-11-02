@@ -41,6 +41,7 @@ def build():
     OUT.mkdir()
     shutil.copy2(ROOT / "index.html", OUT / "index.html")
     if (ROOT / "media").exists(): shutil.copytree(ROOT / "media", OUT / "media")
+    if (ROOT / "assets").exists(): shutil.copytree(ROOT / "assets", OUT / "assets")
     posts = load_posts()
     index = (OUT / "index.html").read_text(encoding="utf-8")
     if posts:
