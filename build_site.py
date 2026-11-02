@@ -107,7 +107,7 @@ def build():
                          f'{cover}<h3>{safe(p["title"])} ↗</h3>'
                          f'<p>{safe(p["description"])}</p>'
                          f'<div class="tag">{safe(p["status"])}</div></a>')
-        section = '<aside class="projects" id="projects"><h2>Мои проекты</h2>' + "".join(cards) + '</aside>'
+        section = '<aside class="projects" id="projects"><h2>Мои проекты</h2>' + "".join(cards) + '<a class="projects-all" href="/projects/">Все проекты →</a></aside>'
         index, count = re.subn(r'<aside class="projects" id="projects">.*?</aside>',
                                 lambda _: section, index, count=1, flags=re.S)
         if count != 1:
@@ -238,6 +238,46 @@ render();
            'href="https://rvanduk.github.io/rss.xml" rel="self" type="application/rss+xml"/>'
            + "".join(rss_items) + '</channel></rss>')
     (OUT / "rss.xml").write_text(rss, encoding="utf-8")
+
+    # Full project directory is available on all screen sizes.
+    catalog = OUT / "projects"
+    catalog.mkdir(parents=True, exist_ok=True)
+    catalog_cards = []
+    for p in projects:
+        link = "/projects/" + quote(p["slug"]) + "/"
+        cover = (f'<img loading="lazy" src="{safe(p["cover"])}" alt="">'
+                 if p["cover"] else '<img src="/assets/side-quest-landscape.svg" alt="">')
+        catalog_cards.append(
+            f'<a class="catalog-card" href="{link}">{cover}'
+            f'<div class="tag">{safe(p["status"])}</div><h2>{safe(p["title"])}</h2>'
+            f'<p>{safe(p["description"])}</p><span class="paperlink">Открыть проект →</span></a>')
+    catalog_body = (
+        '<main class="wrap"><section class="archive-head"><div class="eyebrow">SIDE QUEST / СВОИ МИРЫ</div>'
+        '<h1>Мои проекты.</h1><p>Игры, эксперименты и истории, над которыми я работаю.</p></section>'
+        '<div class="catalog-grid">' + "".join(catalog_cards) + '</div></main>')
+    catalog_page = page_head + catalog_body + '<footer class="wrap foot">' + page_foot
+    catalog_page = re.sub(r'<title>.*?</title>', '<title>Проекты — Side Quest</title>', catalog_page, count=1)
+    (catalog / "index.html").write_text(catalog_page, encoding="utf-8")
+
+    # Search index and share previews.
+    base = "https://rvanduk.github.io"
+    urls = [base + "/", base + "/archive/", base + "/projects/"]
+    urls += [base + "/posts/" + quote(p["slug"]) + "/" for p in posts]
+    urls += [base + "/projects/" + quote(p["slug"]) + "/" for p in projects]
+    sitemap = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + ''.join('<url><loc>' + xml_escape(url) + '</loc></url>' for url in urls) + '</urlset>'
+    (OUT / "sitemap.xml").write_text(sitemap, encoding="utf-8")
+    (OUT / "robots.txt").write_text("User-agent: *\\nAllow: /\\nSitemap: " + base + "/sitemap.xml\\n", encoding="utf-8")
+    for folder in [OUT / "archive", OUT / "projects"] + [OUT / "posts" / p["slug"] for p in posts] + [OUT / "projects" / p["slug"] for p in projects]:
+        target = folder / "index.html"
+        doc = target.read_text(encoding="utf-8")
+        url = base + "/" + folder.relative_to(OUT).as_posix() + "/"
+        title_match = re.search(r'<title>(.*?)</title>', doc, flags=re.S)
+        title = title_match.group(1) if title_match else "Side Quest"
+        meta = (f'<link rel="canonical" href="{safe(url)}">'
+                f'<meta property="og:url" content="{safe(url)}">'
+                f'<meta property="og:title" content="{title}">')
+        doc = doc.replace("</head>", meta + "</head>", 1)
+        target.write_text(doc, encoding="utf-8")
     print(f"Built {len(posts)} posts and {len(projects)} projects")
 
 if __name__ == "__main__": build()
