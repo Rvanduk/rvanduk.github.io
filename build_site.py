@@ -5,6 +5,7 @@ from datetime import date
 from html import escape
 from urllib.parse import quote
 import re, shutil
+from PIL import Image, ImageOps
 from email.utils import format_datetime
 from datetime import datetime, timezone
 from xml.sax.saxutils import escape as xml_escape
@@ -296,6 +297,32 @@ render();
                 f'<meta property="og:title" content="{title}">')
         doc = doc.replace("</head>", meta + "</head>", 1)
         target.write_text(doc, encoding="utf-8")
+    optimized = {}
+    media_dir = OUT / "media"
+    if media_dir.exists():
+        for photo in media_dir.rglob("*"):
+            if photo.suffix.lower() not in (".jpg", ".jpeg", ".png") or not photo.is_file():
+                continue
+            try:
+                with Image.open(photo) as raw:
+                    pic = ImageOps.exif_transpose(raw)
+                    pic.thumbnail((1920, 1920), Image.Resampling.LANCZOS)
+                    if pic.mode not in ("RGB", "RGBA"):
+                        pic = pic.convert("RGB")
+                    target = photo.with_suffix(".webp")
+                    pic.save(target, format="WEBP", quality=78, method=6)
+                if target.stat().st_size < photo.stat().st_size:
+                    optimized["/" + photo.relative_to(OUT).as_posix()] = "/" + target.relative_to(OUT).as_posix()
+                else:
+                    target.unlink()
+            except OSError:
+                print("Cannot compress", photo)
+    for page in OUT.rglob("*.html"):
+        html_source = page.read_text(encoding="utf-8")
+        for old, new in optimized.items():
+            html_source = html_source.replace('src="' + old + '"', 'src="' + new + '"')
+        page.write_text(html_source, encoding="utf-8")
+    print("Compressed CMS images:", len(optimized))
     print(f"Built {len(posts)} posts and {len(projects)} projects")
 
 if __name__ == "__main__": build()
