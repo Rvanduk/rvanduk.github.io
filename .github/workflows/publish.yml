@@ -33,6 +33,19 @@ jobs:
         run: python -m pip install "PyYAML==6.0.2" "Markdown==3.7"
       - name: Build website
         run: python build_site.py
+      - name: Validate generated site
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree
+          root = Path("_site")
+          for name in ["index.html", "archive/index.html", "projects/index.html", "rss.xml", "sitemap.xml", "robots.txt", "assets/side-quest-mark.svg"]:
+              assert (root/name).is_file(), f"Missing {name}"
+          ElementTree.parse(root/"rss.xml")
+          ElementTree.parse(root/"sitemap.xml")
+          assert list((root/"projects").glob("*/index.html")), "Missing project pages"
+          print("Side Quest smoke tests passed")
+          PY
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
