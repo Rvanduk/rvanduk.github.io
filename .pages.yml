@@ -34,11 +34,9 @@ content:
         options:
           values: [Разработка, Играю, Пишу, Заметки]
       - name: project
-        label: Проект (необязательно)
-        type: select
+        label: Проект (необязательно, впиши название)
+        type: string
         default: Мастерская
-        options:
-          values: [Мастерская, Wild Wings, ДРЕЙФ, Эксперименты]
       - name: excerpt
         label: Короткое описание
         type: text
