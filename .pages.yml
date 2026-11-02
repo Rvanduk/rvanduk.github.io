@@ -54,3 +54,42 @@ content:
         type: rich-text
         options:
           format: markdown
+
+  - name: projects
+    label: Мои проекты
+    type: collection
+    path: content/projects
+    format: yaml-frontmatter
+    filename: "{primary}.md"
+    view:
+      fields: [title, status, published]
+      primary: title
+    fields:
+      - name: title
+        label: Название проекта
+        type: string
+        required: true
+      - name: description
+        label: Краткое описание
+        type: text
+      - name: status
+        label: Статус
+        type: select
+        default: В разработке
+        options:
+          values: [В разработке, Эксперимент, Приостановлен, Готов]
+      - name: cover
+        label: Обложка
+        type: image
+      - name: download
+        label: Ссылка на игру или сборку
+        type: string
+      - name: published
+        label: Показывать на сайте
+        type: boolean
+        default: true
+      - name: body
+        label: Подробнее о проекте
+        type: rich-text
+        options:
+          format: markdown
