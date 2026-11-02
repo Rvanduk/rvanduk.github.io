@@ -50,10 +50,21 @@ def build():
             link = "/posts/" + quote(p["slug"]) + "/"
             cover = f'<a href="{link}"><img loading="lazy" style="display:block;max-width:100%;max-height:360px;margin:16px 0;object-fit:cover" src="{safe(p["cover"])}" alt=""></a>' if p["cover"] else ""
             cards.append(f'<article class="post" data-category="{safe(p["category"])}"><div class="meta">{safe(p["date"])}<br>{safe(p["category"]).upper()}</div><div><div class="tag">{safe(p["project"]).upper()}</div><h3><a href="{link}">{safe(p["title"])}</a></h3><p>{safe(p["excerpt"])}</p>{cover}<a class="more" href="{link}">Читать запись →</a></div></article>')
-        heading = '<div class="sectionhead"><h2>Журнал приключений</h2><small>ПОСЛЕДНИЕ ЗАПИСИ</small></div>'
+        heading = '<div class="sectionhead"><h2>Последние публикации</h2><small>ПОСЛЕДНИЕ ЗАПИСИ</small></div>'
         section = '<section class="section" id="journal">' + heading + "".join(cards) + '</section>'
         index, count = re.subn(r'<section class="section" id="journal">.*?</section>', lambda _: section, index, flags=re.S)
         if count != 1: raise RuntimeError("Could not find journal section")
+        newest = posts[0]
+        latest_link = "/posts/" + quote(newest["slug"]) + "/"
+        latest_cover = newest["cover"] or "/assets/side-quest-landscape.svg"
+        featured = (f'<div class="feature" id="featured"><a href="{latest_link}">'
+                    f'<img class="feature-art" loading="lazy" src="{safe(latest_cover)}" alt=""></a>'
+                    f'<div><div class="tag">{safe(newest["category"])}</div>'
+                    f'<h3><a href="{latest_link}">{safe(newest["title"])}</a></h3>'
+                    f'<p>{safe(newest["excerpt"])}</p>'
+                    f'<a class="more" href="{latest_link}">Читать запись →</a></div></div>')
+        index, feature_count = re.subn(r'<div class="feature" id="featured">.*?</div></div>', lambda _: featured, index, count=1, flags=re.S)
+        if feature_count != 1: raise RuntimeError("Could not find featured article")
     (OUT / "index.html").write_text(index, encoding="utf-8")
     for p in posts:
         folder = OUT / "posts" / p["slug"]
