@@ -298,9 +298,11 @@ render();
         doc = doc.replace("</head>", meta + "</head>", 1)
         target.write_text(doc, encoding="utf-8")
     optimized = {}
-    media_dir = OUT / "media"
-    if media_dir.exists():
-        for photo in media_dir.rglob("*"):
+    # Re-process all previously uploaded photos on every build, not just new ones.
+    for image_dir in (OUT / "media", OUT / "assets"):
+        if not image_dir.exists():
+            continue
+        for photo in image_dir.rglob("*"):
             if photo.suffix.lower() not in (".jpg", ".jpeg", ".png") or not photo.is_file():
                 continue
             try:
@@ -321,8 +323,10 @@ render();
         html_source = page.read_text(encoding="utf-8")
         for old, new in optimized.items():
             html_source = html_source.replace('src="' + old + '"', 'src="' + new + '"')
+            html_source = html_source.replace('url("' + old + '")', 'url("' + new + '")')
+            html_source = html_source.replace("url('" + old + "')", "url('" + new + "')")
         page.write_text(html_source, encoding="utf-8")
-    print("Compressed CMS images:", len(optimized))
+    print("Optimized existing and new images:", len(optimized))
     print(f"Built {len(posts)} posts and {len(projects)} projects")
 
 if __name__ == "__main__": build()
