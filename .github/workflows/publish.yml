@@ -6,6 +6,7 @@ on:
       - "index.html"
       - "build_site.py"
       - "content/posts/**"
+      - "content/projects/**"
       - "media/**"
       - "assets/**"
       - ".github/workflows/publish.yml"
